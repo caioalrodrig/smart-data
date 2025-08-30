@@ -1,0 +1,4 @@
+/home/rodrigscaio/smart-data/consumer/src/main/java/com/consumer/SmartdataApplication.java
+/home/rodrigscaio/smart-data/consumer/src/main/java/com/consumer/config/KafkaConsumerConfig.java
+/home/rodrigscaio/smart-data/consumer/src/main/java/com/consumer/dto/ReadingDTO.java
+/home/rodrigscaio/smart-data/consumer/src/main/java/com/consumer/service/ConsumerReadingService.java

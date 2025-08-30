@@ -1,0 +1,15 @@
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/SmartdataApplication.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/config/DataInitializer.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/config/KafkaProducerConfig.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/config/KafkaTopicConfig.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/dto/ReadingDTO.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/dto/mapper/ReadingMapper.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/model/Farm.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/model/Reading.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/model/Sensor.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/repository/FarmRepository.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/repository/ReadingRepository.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/repository/SensorRepository.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/service/ProducerReadingService.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/service/ReadingService.java
+/home/rodrigscaio/smart-data/producer/src/main/java/com/producer/service/SensorService.java

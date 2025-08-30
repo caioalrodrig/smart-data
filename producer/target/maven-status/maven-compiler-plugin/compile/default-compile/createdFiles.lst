@@ -1,0 +1,15 @@
+com/producer/repository/FarmRepository.class
+com/producer/model/Farm.class
+com/producer/config/KafkaProducerConfig.class
+com/producer/model/Reading.class
+com/producer/repository/SensorRepository.class
+com/producer/service/SensorService.class
+com/producer/SmartdataApplication.class
+com/producer/dto/ReadingDTO.class
+com/producer/dto/mapper/ReadingMapper.class
+com/producer/service/ProducerReadingService.class
+com/producer/repository/ReadingRepository.class
+com/producer/config/KafkaTopicConfig.class
+com/producer/config/DataInitializer.class
+com/producer/service/ReadingService.class
+com/producer/model/Sensor.class

@@ -1,0 +1,4 @@
+com/consumer/SmartdataApplication.class
+com/consumer/config/KafkaConsumerConfig.class
+com/consumer/dto/ReadingDTO.class
+com/consumer/service/ConsumerReadingService.class
