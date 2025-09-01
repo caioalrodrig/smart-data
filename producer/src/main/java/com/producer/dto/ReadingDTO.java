@@ -3,6 +3,6 @@ package com.producer.dto;
 import java.sql.Timestamp;
 
 public record ReadingDTO(
-    Integer value,
+    Double value,
     Timestamp timestamp){
 }

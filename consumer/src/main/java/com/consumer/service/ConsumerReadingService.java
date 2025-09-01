@@ -9,4 +9,9 @@ public class ConsumerReadingService {
   public void consume(String temperatureValue) {
     System.out.println("🌡️ TEMPERATURA RECEBIDA: " + temperatureValue + "°C");
   }
+
+  @KafkaListener(topics = "humidity", groupId = "humidity-group")
+  public void consumeHumidity(String humidityValue) {
+    System.out.println("🌡️ UMIDADE RECEBIDA: " + humidityValue + "%");
+  }
 }

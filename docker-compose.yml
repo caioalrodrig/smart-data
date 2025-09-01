@@ -7,7 +7,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-
+    networks:
+      - smartdata-network
 
   kafka:
     image: confluentinc/cp-kafka:6.2.0
@@ -19,9 +20,13 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
+    networks:
+      - smartdata-network
   
   producer:
     build:
@@ -32,7 +37,9 @@ services:
       - "8080:8080"
     depends_on:
       - kafka
-
+      - database
+    networks:
+      - smartdata-network
 
   consumer:
     build:
@@ -43,3 +50,21 @@ services:
       - "8081:8081"
     depends_on:
       - kafka
+    networks:
+      - smartdata-network
+
+  database:
+    image: postgres
+    container_name: database
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: smartdata
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - smartdata-network
+
+networks:
+  smartdata-network:
+    driver: bridge

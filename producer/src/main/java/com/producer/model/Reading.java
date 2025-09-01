@@ -27,7 +27,7 @@ public class Reading {
   private Sensor sensor;
 
   @Column(name = "reading_value", nullable = false)
-  private Integer value;
+  private Double value;
 
   @Column(name = "reading_timestamp", nullable = false)
   private Timestamp timestamp;

@@ -18,6 +18,10 @@ public class ProducerReadingService {
   public void sendTemperatureReading(Reading reading) {
     ReadingDTO readingDTO = ReadingMapper.toDTO(reading);
     kafkaTemplate.send("temperature", readingDTO);
-    System.out.println("Temperatura enviada para Kafka: " + readingDTO.value() + "°C");
+  }
+
+  public void sendHumidityReading(Reading reading) {
+    ReadingDTO readingDTO = ReadingMapper.toDTO(reading);
+    kafkaTemplate.send("humidity", readingDTO);
   }
 }

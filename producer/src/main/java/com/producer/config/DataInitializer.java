@@ -9,12 +9,13 @@ import com.producer.repository.ReadingRepository;
 import com.producer.service.ProducerReadingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.ArrayList;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Random;
 
 @Component
@@ -33,6 +34,9 @@ public class DataInitializer implements CommandLineRunner {
     private ProducerReadingService producerReadingService;
 
     private Random random = new Random();
+
+    private List<Reading> temperatureReadings = new ArrayList<>();
+    private List<Reading> humidityReadings = new ArrayList<>();
 
     @Override
     public void run(String... args) throws Exception {
@@ -62,45 +66,56 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("Fazendas criadas: " + farmRepository.count());
         System.out.println("Sensores criados: " + sensorRepository.count());
         System.out.println("================================================");
-        
-        // Iniciar geração contínua de dados de temperatura
-        startTemperatureDataGeneration();
+
+        generateTemperatureData();
+
+        sendReadingsToTopics();
     }
 
-    @Scheduled(fixedRate = 3000) // Executa a cada 3 segundos
-    public void generateAndSendTemperatureData() {
+    private void generateTemperatureData() {
         try {
-            // Gerar temperatura aleatória entre 15-35°C
-            int temperature = random.nextInt(21) + 15;
-            
-            // Buscar o sensor de temperatura
-            Sensor tempSensor = sensorRepository.findAll().stream()
-                .filter(s -> s.getName().contains("temperatura"))
-                .findFirst()
-                .orElse(null);
-            
-            if (tempSensor != null) {
-                // Criar nova leitura
-                Reading tempReading = new Reading();
-                tempReading.setSensor(tempSensor);
-                tempReading.setValue(temperature);
-                tempReading.setTimestamp(Timestamp.from(Instant.now()));
-                
-                // Salvar no banco
-                readingRepository.save(tempReading);
-                
-                // Enviar para o Kafka
-                producerReadingService.sendTemperatureReading(tempReading);
-                
-                System.out.println("📊 Nova leitura de temperatura: " + temperature + "°C");
+            temperatureReadings.clear();
+            humidityReadings.clear();
+
+            Sensor temperatureSensor = sensorRepository.findByName("temperatura_lm35");
+            Sensor humiditySensor = sensorRepository.findByName("umidade_dht11");
+
+            // populate reading database
+            for (int i = 0; i < 5000; i++) {
+                if (temperatureSensor == null || humiditySensor == null) {
+                    break;
+                }
+
+                double temperature = Math.sin(2 * Math.PI * i / 10000) * 2 + 15;
+                double humidity = Math.sin(2 * Math.PI * i / 10000) * 2 + 40;
+
+                Reading temperatureReading = new Reading();
+                temperatureReading.setSensor(temperatureSensor);
+                temperatureReading.setValue(temperature);
+                temperatureReading.setTimestamp(Timestamp.from(Instant.now()));
+
+                Reading humidityReading = new Reading();
+                humidityReading.setSensor(humiditySensor);
+                humidityReading.setValue(humidity);
+                humidityReading.setTimestamp(Timestamp.from(Instant.now()));
+
+                temperatureReadings.add(temperatureReading);
+                humidityReadings.add(humidityReading);
             }
+
+            readingRepository.saveAll(temperatureReadings);
+            readingRepository.saveAll(humidityReadings);
         } catch (Exception e) {
             System.err.println("Erro ao gerar dados de temperatura: " + e.getMessage());
         }
     }
 
-    private void startTemperatureDataGeneration() {
-        System.out.println("🚀 Iniciando geração contínua de dados de temperatura...");
-        System.out.println("📡 Dados serão enviados para o tópico 'temperature' a cada 3 segundos");
+    private void sendReadingsToTopics() {
+        for (Reading reading : temperatureReadings) {
+            producerReadingService.sendTemperatureReading(reading);
+        }
+        for (Reading reading : humidityReadings) {
+            producerReadingService.sendHumidityReading(reading);
+        }
     }
 }
