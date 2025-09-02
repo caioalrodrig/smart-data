@@ -22,7 +22,7 @@ public class Sensor {
   private Long id;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "farm_id", nullable = false)
+  @JoinColumn(name = "farm_id")
   private Farm farm;
 
   @Column(length = 10, nullable=false)

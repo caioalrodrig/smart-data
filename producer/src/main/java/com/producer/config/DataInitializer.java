@@ -7,115 +7,225 @@ import com.producer.repository.FarmRepository;
 import com.producer.repository.SensorRepository;
 import com.producer.repository.ReadingRepository;
 import com.producer.service.ProducerReadingService;
+import com.producer.service.CustomMetricsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import io.micrometer.core.instrument.Timer;
 
 import java.util.List;
 import java.util.ArrayList;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Random;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
 
-    @Autowired
-    private FarmRepository farmRepository;
+  @Autowired
+  private FarmRepository farmRepository;
 
-    @Autowired
-    private SensorRepository sensorRepository;
+  @Autowired
+  private SensorRepository sensorRepository;
 
-    @Autowired
-    private ReadingRepository readingRepository;
+  @Autowired
+  private ReadingRepository readingRepository;
 
-    @Autowired
-    private ProducerReadingService producerReadingService;
+  @Autowired
+  private ProducerReadingService producerReadingService;
 
-    private Random random = new Random();
+  @Autowired
+  private CustomMetricsService metricsService;
 
-    private List<Reading> temperatureReadings = new ArrayList<>();
-    private List<Reading> humidityReadings = new ArrayList<>();
+  private List<Reading> temperatureReadings = new ArrayList<>();
+  private List<Reading> humidityReadings = new ArrayList<>();
 
-    @Override
-    public void run(String... args) throws Exception {
-        // Criar duas fazendas
-        Farm farm1 = new Farm();
-        farm1.setName("Fazenda Santa Maria");
-        farmRepository.save(farm1);
+  @Override
+  public void run(String... args) throws Exception {
+    try {
+      Farm farm1 = createFarm();
+      createTemperatureSensor(farm1);
+      createHumiditySensor(farm1);
 
-        Farm farm2 = new Farm();
-        farm2.setName("Fazenda Boa Vista");
-        farmRepository.save(farm2);
+      generateTemperatureData();
+      getReadingsFromDatabase();
+      sendReadingsToTopics();
 
-        // Criar dois sensores
-        Sensor sensor1 = new Sensor();
-        sensor1.setFarm(farm1);
-        sensor1.setStatus("Ativo");
-        sensor1.setName("temperatura_lm35");
-        sensorRepository.save(sensor1);
-
-        Sensor sensor2 = new Sensor();
-        sensor2.setFarm(farm2);
-        sensor2.setStatus("Ativo");
-        sensor2.setName("umidade_dht11");
-        sensorRepository.save(sensor2);
-
-        System.out.println("=== Dados de teste inicializados com sucesso! ===");
-        System.out.println("Fazendas criadas: " + farmRepository.count());
-        System.out.println("Sensores criados: " + sensorRepository.count());
-        System.out.println("================================================");
-
-        generateTemperatureData();
-
-        sendReadingsToTopics();
+      System.out.println("Inicialização concluída");
+    } catch (Exception e) {
+      System.err.println("Erro durante inicialização: " + e.getMessage());
+      e.printStackTrace();
+      throw e;
     }
+  }
 
-    private void generateTemperatureData() {
+  private Farm createFarm() {
+    try {
+      Farm farm1 = new Farm();
+      farm1.setName("Fazenda Santa Maria");
+      Farm savedFarm = farmRepository.save(farm1);
+      System.out.println("Fazenda criada");
+      return savedFarm;
+    } catch (Exception e) {
+      System.err.println("Erro ao criar fazenda: " + e.getMessage());
+      throw new RuntimeException("Falha ao criar fazenda", e);
+    }
+  }
+
+  private Sensor createTemperatureSensor(Farm farm) {
+    try {
+      Sensor sensor = new Sensor();
+      sensor.setStatus("Ativo");
+      sensor.setName("temperatura_lm35");
+      sensor.setFarm(farm);
+      Sensor savedSensor = sensorRepository.save(sensor);
+      System.out.println("Sensor temperatura criado");
+      return savedSensor;
+    } catch (Exception e) {
+      System.err.println("Erro ao criar sensor de temperatura: " + e.getMessage());
+      throw new RuntimeException("Falha ao criar sensor de temperatura", e);
+    }
+  }
+
+  private Sensor createHumiditySensor(Farm farm) {
+    try {
+      Sensor sensor = new Sensor();
+      sensor.setStatus("Ativo");
+      sensor.setName("umidade_dht11");
+      sensor.setFarm(farm);
+      Sensor savedSensor = sensorRepository.save(sensor);
+      return savedSensor;
+    } catch (Exception e) {
+      throw new RuntimeException("Falha ao criar sensor de umidade", e);
+    }
+  }
+
+  private void generateTemperatureData() {
+    try {
+      temperatureReadings.clear();
+      humidityReadings.clear();
+
+      Sensor temperatureSensor = sensorRepository.findByName("temperatura_lm35");
+      Sensor humiditySensor = sensorRepository.findByName("umidade_dht11");
+
+      if (temperatureSensor == null || humiditySensor == null) {
+        throw new RuntimeException("Sensores não encontrados no banco de dados");
+      }
+
+      final int BATCH_SIZE = 2000;
+      final int TOTAL_READINGS = 50000;
+      final double SIN_CONSTANT = 2 * Math.PI / BATCH_SIZE;
+
+      for (int batch = 0; batch < TOTAL_READINGS; batch += BATCH_SIZE) {
+        int currentBatchSize = Math.min(BATCH_SIZE, TOTAL_READINGS - batch);
+
+        List<Reading> currentTemperatureBatch = new ArrayList<>();
+        List<Reading> currentHumidityBatch = new ArrayList<>();
+
+        for (int i = 0; i < currentBatchSize; i++) {
+          int globalIndex = batch + i;
+
+          double temperature = Math.sin(SIN_CONSTANT * globalIndex) * 2 + 15;
+          double humidity = Math.sin(SIN_CONSTANT * globalIndex) * 2 + 40;
+
+          Reading temperatureReading = new Reading();
+          temperatureReading.setSensor(temperatureSensor);
+          temperatureReading.setValue(temperature);
+          temperatureReading.setTimestamp(Timestamp.from(Instant.now()));
+
+          Reading humidityReading = new Reading();
+          humidityReading.setSensor(humiditySensor);
+          humidityReading.setValue(humidity);
+          humidityReading.setTimestamp(Timestamp.from(Instant.now()));
+
+          currentTemperatureBatch.add(temperatureReading);
+          currentHumidityBatch.add(humidityReading);
+
+        }
+
+        Timer.Sample insertTimer = metricsService.startPostgresInsertTimer();
         try {
-            temperatureReadings.clear();
-            humidityReadings.clear();
+          readingRepository.saveAll(currentTemperatureBatch);
+          readingRepository.saveAll(currentHumidityBatch);
 
-            Sensor temperatureSensor = sensorRepository.findByName("temperatura_lm35");
-            Sensor humiditySensor = sensorRepository.findByName("umidade_dht11");
+          temperatureReadings.addAll(currentTemperatureBatch);
+          humidityReadings.addAll(currentHumidityBatch);
 
-            // populate reading database
-            for (int i = 0; i < 5000; i++) {
-                if (temperatureSensor == null || humiditySensor == null) {
-                    break;
-                }
+          metricsService.incrementPostgresInsert();
+          metricsService.incrementPostgresInsert();
 
-                double temperature = Math.sin(2 * Math.PI * i / 10000) * 2 + 15;
-                double humidity = Math.sin(2 * Math.PI * i / 10000) * 2 + 40;
+        } finally {
+          metricsService.stopPostgresInsertTimer(insertTimer);
+        }
+      }
+      System.out.println("Dados gerados");
 
-                Reading temperatureReading = new Reading();
-                temperatureReading.setSensor(temperatureSensor);
-                temperatureReading.setValue(temperature);
-                temperatureReading.setTimestamp(Timestamp.from(Instant.now()));
+    } catch (Exception e) {
+      throw new RuntimeException("Falha ao gerar dados de teste", e);
+    }
+  }
 
-                Reading humidityReading = new Reading();
-                humidityReading.setSensor(humiditySensor);
-                humidityReading.setValue(humidity);
-                humidityReading.setTimestamp(Timestamp.from(Instant.now()));
+  private void getReadingsFromDatabase() {
+    try {
+      Sensor temperatureSensor = sensorRepository.findByName("temperatura_lm35");
+      Sensor humiditySensor = sensorRepository.findByName("umidade_dht11");
 
-                temperatureReadings.add(temperatureReading);
-                humidityReadings.add(humidityReading);
-            }
+      if (temperatureSensor == null || humiditySensor == null) {
+        throw new RuntimeException("Sensores não encontrados no banco de dados");
+      }
 
-            readingRepository.saveAll(temperatureReadings);
-            readingRepository.saveAll(humidityReadings);
+      Timer.Sample queryTimer = metricsService.startPostgresReadTimer();
+      try {
+        temperatureReadings = readingRepository.findAllBySensorId(temperatureSensor.getId());
+        metricsService.incrementPostgresRead();
+      } finally {
+        metricsService.stopPostgresReadTimer(queryTimer);
+      }
+
+      Timer.Sample queryTimer2 = metricsService.startPostgresReadTimer();
+      try {
+        humidityReadings = readingRepository.findAllBySensorId(humiditySensor.getId());
+        metricsService.incrementPostgresRead();
+      } finally {
+        metricsService.stopPostgresReadTimer(queryTimer2);
+      }
+
+      System.out.println("Dados recuperados");
+
+    } catch (Exception e) {
+      throw new RuntimeException("Falha ao buscar dados do banco", e);
+    }
+  }
+
+  private void sendReadingsToTopics() {
+    try {
+      if (temperatureReadings.isEmpty() && humidityReadings.isEmpty()) {
+        return;
+      }
+
+      for (Reading reading : temperatureReadings) {
+        try {
+          metricsService.incrementKafkaSend();
+          producerReadingService.sendTemperatureReading(reading);
         } catch (Exception e) {
-            System.err.println("Erro ao gerar dados de temperatura: " + e.getMessage());
+          System.err.println("Erro ao enviar leitura de temperatura: " + e.getMessage());
         }
-    }
+      }
 
-    private void sendReadingsToTopics() {
-        for (Reading reading : temperatureReadings) {
-            producerReadingService.sendTemperatureReading(reading);
+      for (Reading reading : humidityReadings) {
+        try {
+          metricsService.incrementKafkaSend();
+          producerReadingService.sendHumidityReading(reading);
+        } catch (Exception e) {
+          System.err.println("Erro ao enviar leitura de umidade: " + e.getMessage());
         }
-        for (Reading reading : humidityReadings) {
-            producerReadingService.sendHumidityReading(reading);
-        }
+      }
+
+      System.out.println("Dados enviados");
+
+    } catch (Exception e) {
+      System.err.println("Erro ao enviar dados para tópicos: " + e.getMessage());
+      throw new RuntimeException("Falha ao enviar dados para tópicos", e);
     }
+  }
 }
