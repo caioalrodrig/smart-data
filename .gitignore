@@ -47,3 +47,9 @@ node_modules/
 
 producer/target/
 consumer/target/
+
+METRICS.md
+
+consumidor_temperatura.py
+consumidor_pressao.py
+produtor_multitopico.py
