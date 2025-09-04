@@ -38,6 +38,7 @@ services:
     depends_on:
       - kafka
       - database
+      - database_mongo
     networks:
       - smartdata-network
 
@@ -65,6 +66,20 @@ services:
     networks:
       - smartdata-network
 
+  database_mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: smartdata
+      MONGO_SCRAM_MEMBERS: 2
+    networks:
+      - smartdata-network
+    volumes:
+      - mongodb_data:/data/db
+    
   prometheus:
     image: prom/prometheus:v2.48.0
     container_name: prometheus
@@ -84,7 +99,16 @@ services:
       - smartdata-network
     depends_on:
       - prometheus
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - grafana-config:/etc/grafana
+
 
 networks:
   smartdata-network:
     driver: bridge
+
+volumes:
+  grafana-data:
+  grafana-config:
+  mongodb_data:

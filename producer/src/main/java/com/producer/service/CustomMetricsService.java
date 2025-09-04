@@ -11,8 +11,12 @@ public class CustomMetricsService {
   private final Counter kafkaSendCounter;
   private final Counter postgresInsertCounter;
   private final Counter postgresReadCounter;
+  private final Counter mongoInsertCounter;
+  private final Counter mongoReadCounter;
   private final Timer postgresInsertTimer;
   private final Timer postgresReadTimer;
+  private final Timer mongoInsertTimer;
+  private final Timer mongoReadTimer;
 
   public CustomMetricsService(MeterRegistry meterRegistry) {
     kafkaSendCounter = Counter.builder("kafka.send.total")
@@ -33,6 +37,22 @@ public class CustomMetricsService {
 
     postgresReadTimer = Timer.builder("postgres.read.duration")
         .description("Duration of PostgreSQL read operations")
+        .register(meterRegistry);
+
+    mongoInsertCounter = Counter.builder("mongo.insert.total")
+        .description("Total number of MongoDB insert operations")
+        .register(meterRegistry);
+
+    mongoReadCounter = Counter.builder("mongo.read.total")
+        .description("Total number of MongoDB read operations")
+        .register(meterRegistry);
+
+    mongoInsertTimer = Timer.builder("mongo.insert.duration")
+        .description("Duration of MongoDB insert operations")
+        .register(meterRegistry);
+
+    mongoReadTimer = Timer.builder("mongo.read.duration")
+        .description("Duration of MongoDB read operations")
         .register(meterRegistry);
   }
 
@@ -62,5 +82,29 @@ public class CustomMetricsService {
 
   public void stopPostgresReadTimer(Timer.Sample sample) {
     sample.stop(postgresReadTimer);
+  }
+
+  public Timer.Sample startMongoInsertTimer() {
+    return Timer.start();
+  }
+
+  public void stopMongoInsertTimer(Timer.Sample sample) {
+    sample.stop(mongoInsertTimer);
+  }
+
+  public void incrementMongoInsert() {
+    mongoInsertCounter.increment();
+  }
+
+  public Timer.Sample startMongoReadTimer() {
+    return Timer.start();
+  }
+
+  public void stopMongoReadTimer(Timer.Sample sample) {
+    sample.stop(mongoReadTimer);
+  }
+
+  public void incrementMongoRead() {
+    mongoReadCounter.increment();
   }
 }
