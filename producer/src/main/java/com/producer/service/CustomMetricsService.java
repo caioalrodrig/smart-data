@@ -9,10 +9,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class CustomMetricsService {
 
   private final Counter kafkaSendCounter;
-  private final Counter postgresInsertCounter;
-  private final Counter postgresReadCounter;
-  private final Counter mongoInsertCounter;
-  private final Counter mongoReadCounter;
   private final Timer postgresInsertTimer;
   private final Timer postgresReadTimer;
   private final Timer mongoInsertTimer;
@@ -23,13 +19,6 @@ public class CustomMetricsService {
         .description("Total number of Kafka send operations")
         .register(meterRegistry);
 
-    postgresInsertCounter = Counter.builder("postgres.insert.total")
-        .description("Total number of PostgreSQL insert operations")
-        .register(meterRegistry);
-
-    postgresReadCounter = Counter.builder("postgres.read.total")
-        .description("Total number of PostgreSQL read operations")
-        .register(meterRegistry);
 
     postgresInsertTimer = Timer.builder("postgres.insert.duration")
         .description("Duration of PostgreSQL insert operations")
@@ -39,19 +28,20 @@ public class CustomMetricsService {
         .description("Duration of PostgreSQL read operations")
         .register(meterRegistry);
 
-    mongoInsertCounter = Counter.builder("mongo.insert.total")
-        .description("Total number of MongoDB insert operations")
-        .register(meterRegistry);
-
-    mongoReadCounter = Counter.builder("mongo.read.total")
-        .description("Total number of MongoDB read operations")
-        .register(meterRegistry);
 
     mongoInsertTimer = Timer.builder("mongo.insert.duration")
+        .publishPercentileHistogram()
+        .publishPercentiles(0.5, 0.95, 0.99)
+        .minimumExpectedValue(Duration.ofMillis(10))
+        .maximumExpectedValue(Duration.ofSeconds(1))
         .description("Duration of MongoDB insert operations")
         .register(meterRegistry);
 
     mongoReadTimer = Timer.builder("mongo.read.duration")
+        .publishPercentileHistogram()
+        .publishPercentiles(0.5, 0.95, 0.99)
+        .minimumExpectedValue(Duration.ofMillis(10))
+        .maximumExpectedValue(Duration.ofSeconds(5))
         .description("Duration of MongoDB read operations")
         .register(meterRegistry);
   }
@@ -66,14 +56,6 @@ public class CustomMetricsService {
 
   public void incrementKafkaSend() {
     kafkaSendCounter.increment();
-  }
-
-  public void incrementPostgresInsert() {
-    postgresInsertCounter.increment();
-  }
-
-  public void incrementPostgresRead() {
-    postgresReadCounter.increment();
   }
 
   public Timer.Sample startPostgresReadTimer() {
@@ -92,19 +74,11 @@ public class CustomMetricsService {
     sample.stop(mongoInsertTimer);
   }
 
-  public void incrementMongoInsert() {
-    mongoInsertCounter.increment();
-  }
-
   public Timer.Sample startMongoReadTimer() {
     return Timer.start();
   }
 
   public void stopMongoReadTimer(Timer.Sample sample) {
     sample.stop(mongoReadTimer);
-  }
-
-  public void incrementMongoRead() {
-    mongoReadCounter.increment();
   }
 }

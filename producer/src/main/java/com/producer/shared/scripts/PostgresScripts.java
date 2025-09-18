@@ -134,9 +134,6 @@ public class PostgresScripts {
           temperatureReadings.addAll(currentTemperatureBatch);
           humidityReadings.addAll(currentHumidityBatch);
 
-          metricsService.incrementPostgresInsert();
-          metricsService.incrementPostgresInsert();
-
         } finally {
           metricsService.stopPostgresInsertTimer(insertTimer);
         }
@@ -160,7 +157,6 @@ public class PostgresScripts {
       Timer.Sample queryTimer = metricsService.startPostgresReadTimer();
       try {
         temperatureReadings = readingRepository.findAllBySensorId(temperatureSensor.getId());
-        metricsService.incrementPostgresRead();
       } finally {
         metricsService.stopPostgresReadTimer(queryTimer);
       }
@@ -168,7 +164,6 @@ public class PostgresScripts {
       Timer.Sample queryTimer2 = metricsService.startPostgresReadTimer();
       try {
         humidityReadings = readingRepository.findAllBySensorId(humiditySensor.getId());
-        metricsService.incrementPostgresRead();
       } finally {
         metricsService.stopPostgresReadTimer(queryTimer2);
       }

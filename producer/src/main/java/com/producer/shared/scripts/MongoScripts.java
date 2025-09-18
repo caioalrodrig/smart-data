@@ -74,9 +74,6 @@ public class MongoScripts {
           sensorReadingRepository.pushReadings(temperatureSensorReading.getId(), currentTemperatureBatch);
           sensorReadingRepository.pushReadings(humiditySensorReading.getId(), currentHumidityBatch);
 
-          metricsService.incrementMongoInsert();
-          metricsService.incrementMongoInsert();
-
         } finally {
           metricsService.stopMongoInsertTimer(insertTimer);
         }
@@ -94,7 +91,6 @@ public class MongoScripts {
       Timer.Sample queryTimer = metricsService.startMongoReadTimer();
       try {
         SensorReadingMongo temperatureSensorReading = sensorReadingRepository.findByName("temperatura_lm35");
-        metricsService.incrementMongoRead();
         
       } finally {
         metricsService.stopMongoReadTimer(queryTimer);
@@ -103,7 +99,6 @@ public class MongoScripts {
       Timer.Sample queryTimer2 = metricsService.startMongoReadTimer();
       try {
         SensorReadingMongo humiditySensorReading = sensorReadingRepository.findByName("umidade_dht11");
-        metricsService.incrementMongoRead();
         
       } finally {
         metricsService.stopMongoReadTimer(queryTimer2);
